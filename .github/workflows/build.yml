@@ -18,13 +18,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo build --release
-      - run: Copy-Item config.example.yaml target/release/
+      - run: |
+          New-Item -ItemType Directory -Path pkg -Force
+          Copy-Item target/release/githttp.exe pkg/
+          Copy-Item config.example.yaml pkg/
+          Compress-Archive -Path pkg/* -DestinationPath githttp-x86_64-pc-windows-msvc.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: githttp-windows-x86_64
-          path: |
-            target/release/githttp.exe
-            target/release/config.example.yaml
+          name: githttp-x86_64-pc-windows-msvc
+          path: githttp-x86_64-pc-windows-msvc.zip
 
   build-linux-musl:
     name: Linux x86_64 (musl)
@@ -36,13 +38,14 @@ jobs:
           targets: x86_64-unknown-linux-musl
       - run: sudo apt-get update && sudo apt-get install -y musl-tools
       - run: cargo build --release --target x86_64-unknown-linux-musl
-      - run: cp config.example.yaml target/x86_64-unknown-linux-musl/release/
+      - run: |
+          cp target/x86_64-unknown-linux-musl/release/githttp .
+          cp config.example.yaml .
+          tar -czf githttp-x86_64-unknown-linux-musl.tar.gz githttp config.example.yaml
       - uses: actions/upload-artifact@v4
         with:
-          name: githttp-linux-x86_64-musl
-          path: |
-            target/x86_64-unknown-linux-musl/release/githttp
-            target/x86_64-unknown-linux-musl/release/config.example.yaml
+          name: githttp-x86_64-unknown-linux-musl
+          path: githttp-x86_64-unknown-linux-musl.tar.gz
 
   release:
     name: Create Release
@@ -54,9 +57,9 @@ jobs:
         with:
           pattern: githttp-*
           merge-multiple: true
+      - run: ls -la
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            githttp.exe
-            githttp
-            config.example.yaml
+            githttp-x86_64-pc-windows-msvc.zip
+            githttp-x86_64-unknown-linux-musl.tar.gz
