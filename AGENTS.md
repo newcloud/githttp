@@ -202,3 +202,52 @@ logging:
 ## Git repos
 
 All repos must be **bare** (`git init --bare`) and located under `git_project_root`.
+
+## Release & CI
+
+### GitHub Actions workflow
+
+Workflow file: `.github/workflows/build.yml`
+
+**Triggers:**
+- `push` to `master`/`main` — build only
+- `push` tag `v*` — build + create GitHub Release
+- `pull_request` to `master`/`main` — build only
+
+**Release artifacts:**
+
+| Platform | File |
+|----------|------|
+| Windows x86_64 | `githttp-x86_64-pc-windows-msvc.zip` |
+| Linux x86_64 musl | `githttp-x86_64-unknown-linux-musl.tar.gz` |
+
+Each archive contains: binary + `config.example.yaml`
+
+### How to release
+
+```bash
+git tag v0.1.2
+git push origin v0.1.2
+```
+
+Pushing a `v*` tag triggers the release job automatically. Check progress at `https://github.com/newcloud/githttp/actions`.
+
+### Release profile
+
+`Cargo.toml` has `[profile.release]` optimized for binary size:
+
+```toml
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+```
+
+### Key gotchas
+
+- **403 on release**: `release` job needs `permissions: contents: write`. Already configured.
+- **Re-tagging**: to re-trigger a failed release, delete and re-create the tag:
+  ```bash
+  git tag -d vX.Y.Z && git push origin :vX.Y.Z && git tag vX.Y.Z && git push origin vX.Y.Z
+  ```
+- **Actions versions**: `checkout@v6`, `upload-artifact@v7`, `download-artifact@v5`, `action-gh-release@v3`. Watch for deprecation warnings.
