@@ -1,30 +1,30 @@
-# Git HTTP Server 配置
+# Git HTTP Server Configuration
 
-# Git 仓库根目录 (bare 仓库存放路径)
+# Git repository root directory (where bare repos are stored)
 git_project_root: "/path/to/git/repos"
 
-# git-http-backend 可执行文件路径 (仅 backend=cgi 时需要，backend=native 时无需填写)
-# CGI 模式: 通过 git-http-backend CGI 程序代理所有 Git 请求，兼容性最好，需要额外安装
-# Native 模式: 直接调用 git upload-pack / git receive-pack，无 CGI 开销，性能更好，不需要 git-http-backend
+# Path to git-http-backend executable (only needed when backend=cgi, ignored when backend=native)
+# CGI mode: proxies all Git requests through git-http-backend CGI program, best compatibility, requires extra install
+# Native mode: directly invokes git upload-pack / git receive-pack, no CGI overhead, better performance, no git-http-backend needed
 git_http_backend: "/usr/local/libexec/git-core/git-http-backend"
 
-# 监听地址
+# Listen address
 listen_addr: "0.0.0.0:18011"
 
-# 用户认证 (用户名 -> SHA-256 哈希密码)
-# 使用命令添加用户: githttp adduser <username>
-# 修改密码: githttp setpassword <username>
-# 删除用户: githttp deluser <username>
+# User authentication (username -> SHA-256 hashed password)
+# Add user: githttp adduser <username>
+# Change password: githttp setpassword <username>
+# Delete user: githttp deluser <username>
 users: {}
 
-# 后端模式: cgi | native (默认)
-#   cgi    - 通过旧版 git-http-backend CGI 程序代理请求，URL 路径: /*path
-#   native - 直接调用 git upload-pack/receive-pack 命令，URL 路径: /*path
+# Backend mode: cgi | native (default)
+#   cgi    - proxy requests via legacy git-http-backend CGI program, URL path: /*path
+#   native - directly invoke git upload-pack/receive-pack, URL path: /*path
 backend: "native"
 
-# 日志配置 (可选)
-#   file_enabled - 是否写入日志文件 (默认 false)
-#   log_dir      - 日志目录 (默认 "logs")
+# Logging configuration (optional)
+#   file_enabled - whether to write logs to file (default: false)
+#   log_dir      - log directory (default: "logs")
 logging:
   file_enabled: false
   log_dir: "logs"
