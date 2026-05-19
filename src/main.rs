@@ -316,9 +316,10 @@ async fn run_server(config: Config) {
         }
     } else {
         info!("No repositories found in {}", project_root.display());
-        info!("你可以这样创建:");
+        info!("To get started, create a bare Git repository:");
         info!("  cd {}", project_root.display());
         info!("  git init --bare demo.git");
+        info!("  Then clone it: git clone http://<user>:<password>@{}:{}/demo.git", host, port);
     }
 
     axum::serve(listener, app)
