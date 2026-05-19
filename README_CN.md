@@ -23,10 +23,10 @@ cargo build --release
 ### 配置
 
 ```bash
-cp config.example.yaml config.yaml
+cp config.example.toml config.toml
 ```
 
-编辑 `config.yaml`：
+编辑 `config.toml`：
 
 ```yaml
 git_project_root: "/path/to/git/repos"
@@ -53,7 +53,7 @@ githttp setpassword admin
 githttp deluser admin
 
 # 指定配置文件
-githttp adduser admin config.yaml
+githttp adduser admin config.toml
 ```
 
 
@@ -64,7 +64,7 @@ githttp adduser admin config.yaml
 githttp
 
 # 指定配置文件
-githttp -c config.yaml
+githttp -c config.toml
 
 # 安静模式（不输出终端日志）
 githttp -q -c config.yaml
@@ -74,7 +74,7 @@ githttp -q -c config.yaml
 
 | 参数 | 说明 |
 |------|------|
-| `-c`, `--config <path>` | 指定配置文件路径（默认 config.yaml） |
+| `-c`, `--config <path>` | 指定配置文件路径（默认 config.toml） |
 | `-q`, `--quiet` | 安静模式，不输出终端日志 |
 | `adduser <username>` | 添加用户 |
 | `setpassword <username>` | 修改密码 |
@@ -88,7 +88,7 @@ cd /path/to/git/repos
 git init --bare my-project.git
 
 # 启动服务器
-githttp -c config.yaml
+githttp -c config.toml
 
 # clone
 git clone http://user:pass@localhost:18011/my-project.git

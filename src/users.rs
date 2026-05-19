@@ -6,7 +6,7 @@ use crate::config::Config;
 pub fn load_config_or_exit(config_path: &str) -> Config {
     Config::from_file(config_path).unwrap_or_else(|| {
         eprintln!("Config file not found at '{}'", config_path);
-        eprintln!("Copy config.example.yaml to config.yaml and try again");
+        eprintln!("Copy config.example.toml to config.toml and try again");
         std::process::exit(1);
     })
 }

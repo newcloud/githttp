@@ -86,7 +86,7 @@ fn step1_repos_root(current: Option<PathBuf>, from_config: bool) -> PathBuf {
         println!();
         if let Some(ref current_path) = current {
             if from_config {
-                println!("  {} {}", "Source: config.yaml →".dimmed(), current_path.display().to_string().bright_white());
+                println!("  {} {}", "Source: config.toml →".dimmed(), current_path.display().to_string().bright_white());
             } else {
                 println!("  Default: {}", current_path.display().to_string().bright_white());
             }

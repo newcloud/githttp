@@ -9,7 +9,7 @@ pub enum Backend {
     Native,
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, PartialEq)]
 pub struct LoggingConfig {
     #[serde(default)]
     pub file_enabled: bool,
@@ -33,14 +33,23 @@ impl Default for LoggingConfig {
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Config {
     pub git_project_root: PathBuf,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub git_http_backend: Option<PathBuf>,
     pub listen_addr: String,
+    #[serde(skip_serializing_if = "std::collections::HashMap::is_empty", default)]
     pub users: std::collections::HashMap<String, String>,
-    #[serde(default = "default_backend")]
+    #[serde(skip_serializing_if = "is_default_backend", default = "default_backend")]
     pub backend: Backend,
-    #[serde(default)]
+    #[serde(skip_serializing_if = "is_default_logging", default)]
     pub logging: LoggingConfig,
+}
+
+fn is_default_backend(b: &Backend) -> bool {
+    *b == default_backend()
+}
+
+fn is_default_logging(l: &LoggingConfig) -> bool {
+    *l == LoggingConfig::default()
 }
 
 /// 自动检测 git-http-backend 路径
@@ -92,53 +101,11 @@ impl Config {
         if content.is_empty() {
             return None;
         }
-        serde_yaml::from_str(&content).ok()
+        toml::from_str(&content).ok()
     }
 
     pub fn save(&self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let mut content = String::new();
-        content.push_str("# ============================================================\n");
-        content.push_str("#  githttp Configuration\n");
-        content.push_str("# ============================================================\n\n");
-        content.push_str("# --- Repository Settings ---\n");
-        content.push_str("# Root directory for Git bare repositories.\n");
-        content.push_str("# Example: C:\\Users\\...\\repos   or   /home/.../repos\n");
-        let root = self.git_project_root.display().to_string();
-        content.push_str(&format!("git_project_root: {}\n\n", yaml_str(&root)));
-        content.push_str("# --- Server Settings ---\n");
-        content.push_str("# Listen address and port.\n");
-        content.push_str("# Example: 0.0.0.0:18011\n");
-        content.push_str(&format!("listen_addr: \"{}\"\n\n", self.listen_addr));
-        if self.backend == Backend::Cgi {
-            if let Some(ref backend_path) = self.git_http_backend {
-                content.push_str("# Path to git-http-backend executable.\n");
-                let bp = backend_path.display().to_string();
-                content.push_str(&format!("git_http_backend: {}\n\n", yaml_str(&bp)));
-            }
-            content.push_str("# --- Backend ---\n");
-            content.push_str("# Git backend mode: \"native\" or \"cgi\"\n");
-            content.push_str("#   native - spawns git processes directly\n");
-            content.push_str("#   cgi    - proxies through git-http-backend (CGI)\n");
-            content.push_str("backend: cgi\n\n");
-        }
-        if !self.users.is_empty() {
-            content.push_str("# --- User Accounts ---\n");
-            content.push_str("# Username and hashed password for Git authentication.\n");
-            content.push_str("users:\n");
-            for (user, hash) in &self.users {
-                content.push_str(&format!("  {}: \"{}\"\n", user, hash));
-            }
-            content.push('\n');
-        }
-        content.push_str("# --- Logging ---\n");
-        content.push_str("logging:\n");
-        content.push_str("  # Write access logs to file.\n");
-        content.push_str("  # Example: true  or  false\n");
-        content.push_str(&format!("  file_enabled: {}\n", self.logging.file_enabled));
-        content.push_str("  # Directory for log files.\n");
-        content.push_str("  # Example: logs\n");
-        let log_dir = self.logging.log_dir.display().to_string();
-        content.push_str(&format!("  log_dir: {}\n", yaml_str(&log_dir)));
+        let content = toml::to_string_pretty(self)?;
         fs::write(path, content)?;
         Ok(())
     }
@@ -167,14 +134,6 @@ impl Default for Config {
 
 fn default_backend() -> Backend {
     Backend::Native
-}
-fn yaml_str(s: &str) -> String {
-    if s.is_empty() || s.contains('\\') || s.contains('"') || s.contains(':') || s.contains('#') {
-        let escaped = s.replace('\\', "\\\\").replace('"', "\\\"");
-        format!("\"{}\"", escaped)
-    } else {
-        s.to_string()
-    }
 }
 
 pub fn detect_git_executable() -> PathBuf {

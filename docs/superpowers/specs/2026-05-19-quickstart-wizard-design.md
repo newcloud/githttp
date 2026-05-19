@@ -7,7 +7,7 @@ Add `githttp quickstart` subcommand — an interactive setup wizard for first-ti
 ## Trigger
 
 - `githttp quickstart` — the **only** entry point
-- `githttp` without args and no config.yaml — NO auto-trigger (existing behavior preserved)
+- `githttp` without args and no config.toml — NO auto-trigger (existing behavior preserved)
 - Release scripts: `quickstart.bat` (Windows), `quickstart.sh` (Linux), both run `githttp quickstart`
 
 ## Wizard Flow
@@ -18,12 +18,12 @@ Welcome message
 Step 1: Repos root directory
   |-- Invalid path → loop retry (don't exit)
   |-- Valid path → scan *.git repos, list them
-  |-- Generate config.yaml immediately
+  |-- Generate config.toml immediately
   |
 Step 2: Create user
   |-- Username (reject duplicates)
   |-- Password + confirm (hidden, reject empty/mismatch)
-  |-- Update config.yaml
+  |-- Update config.toml
   |
 Step 3: Add more users? [y/N] → loop back to Step 2
   |
@@ -45,11 +45,11 @@ Step 5: Start server now? [Y/n]
 | `src/main.rs` | **Modify** — add `quickstart` subcommand parsing + handler branch |
 | `quickstart.bat` | **New** — Windows one-click: `githttp quickstart` |
 | `quickstart.sh` | **New** — Linux one-click: `githttp quickstart` |
-| `.github/workflows/build.yml` | **Modify** — package quickstart.bat/sh, remove config.example.yaml |
+| `.github/workflows/build.yml` | **Modify** — package quickstart.bat/sh, remove config.example.toml |
 
 ## Design Decisions
 
-- Generated config.yaml omits `backend` (default native) and `logging` (default disabled)
+- Generated config.toml omits `backend` (default native) and `logging` (default disabled)
 - Reuses `auth::hash_password()` and `users::read_password_pair()` from existing code
 - Config maintained in memory, saved incrementally after each step
 - No .git repos found → non-blocking, show creation command

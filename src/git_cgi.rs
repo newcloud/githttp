@@ -5,8 +5,11 @@ use axum::{
     response::Response,
 };
 use bytes::Bytes;
-use futures::stream::BoxStream;
-use futures::StreamExt;
+use futures_core::Stream;
+use tokio_stream::StreamExt;
+
+type BoxStream<'a, T> = Pin<Box<dyn Stream<Item = T> + Send + 'a>>;
+
 use std::io;
 use std::pin::Pin;
 use std::process::Stdio;
@@ -30,7 +33,7 @@ struct GuardedStream {
     kill_tx: Option<tokio::sync::broadcast::Sender<()>>,
 }
 
-impl futures::Stream for GuardedStream {
+impl Stream for GuardedStream {
     type Item = Result<Bytes, io::Error>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {

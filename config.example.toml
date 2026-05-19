@@ -1,0 +1,26 @@
+# githttp Configuration
+
+# Git repository root directory (where bare repos are stored)
+git_project_root = "/path/to/git/repos"
+
+# Listen address
+listen_addr = "0.0.0.0:18011"
+
+# Backend mode: "cgi" or "native" (default: native)
+#   native - directly invokes git upload-pack/receive-pack (better performance)
+#   cgi    - proxies through git-http-backend CGI program (best compatibility)
+# backend = "native"
+
+# Path to git-http-backend executable (only needed when backend = "cgi")
+# git_http_backend = "/usr/local/libexec/git-core/git-http-backend"
+
+# User authentication (username -> SHA-256 hashed password)
+# Add user:    githttp adduser <username>
+# Change pass: githttp setpassword <username>
+# Delete user: githttp deluser <username>
+[users]
+
+# Logging configuration
+[logging]
+file_enabled = false
+log_dir = "logs"

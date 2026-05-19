@@ -39,7 +39,7 @@ enum CliCommand {
 
 fn parse_args() -> CliCommand {
     let raw_args: Vec<String> = env::args().collect();
-    let default_config = "config.yaml".to_string();
+    let default_config = "config.toml".to_string();
     let mut config_path = default_config.clone();
     let mut quiet = false;
     let mut positional: Vec<String> = vec![raw_args[0].clone()];
@@ -88,7 +88,7 @@ fn parse_args() -> CliCommand {
     match positional[1].as_str() {
         "adduser" => {
             if positional.len() < 3 {
-                eprintln!("Usage: githttp adduser <username> [config.yaml]");
+                eprintln!("Usage: githttp adduser <username> [config.toml]");
                 std::process::exit(1);
             }
             if positional.len() > 3 {
@@ -101,7 +101,7 @@ fn parse_args() -> CliCommand {
         }
         "setpassword" => {
             if positional.len() < 3 {
-                eprintln!("Usage: githttp setpassword <username> [config.yaml]");
+                eprintln!("Usage: githttp setpassword <username> [config.toml]");
                 std::process::exit(1);
             }
             if positional.len() > 3 {
@@ -114,7 +114,7 @@ fn parse_args() -> CliCommand {
         }
         "deluser" => {
             if positional.len() < 3 {
-                eprintln!("Usage: githttp deluser <username> [config.yaml]");
+                eprintln!("Usage: githttp deluser <username> [config.toml]");
                 std::process::exit(1);
             }
             if positional.len() > 3 {
@@ -139,13 +139,13 @@ fn print_help() {
     eprintln!("githttp — Git HTTP server");
     eprintln!();
     eprintln!("Usage:");
-    eprintln!("  githttp [OPTIONS]                    Start server (reads config.yaml)");
-    eprintln!("  githttp [OPTIONS] <config.yaml>      Start server with config file");
+    eprintln!("  githttp [OPTIONS]                    Start server (reads config.toml)");
+    eprintln!("  githttp [OPTIONS] <config.toml>      Start server with config file");
     eprintln!();
     eprintln!("User management:");
-    eprintln!("  githttp adduser <username> [config.yaml]");
-    eprintln!("  githttp setpassword <username> [config.yaml]");
-    eprintln!("  githttp deluser <username> [config.yaml]");
+    eprintln!("  githttp adduser <username> [config.toml]");
+    eprintln!("  githttp setpassword <username> [config.toml]");
+    eprintln!("  githttp deluser <username> [config.toml]");
     eprintln!("  githttp quickstart                   Interactive setup wizard");
     eprintln!();
     eprintln!("Options:");
@@ -207,7 +207,7 @@ async fn main() {
         CliCommand::Server { config_path, quiet } => {
             let config = Config::from_file(&config_path).unwrap_or_else(|| {
                 eprintln!("No config file found at '{}', using defaults", config_path);
-                eprintln!("Copy config.example.yaml to config.yaml to customize");
+                eprintln!("Copy config.example.toml to config.toml to customize");
                 Config::default()
             });
             if !config.git_project_root.exists() {
@@ -296,7 +296,7 @@ async fn run_server(config: Config) {
 
     let app = Router::new()
         .route(
-            "/*path",
+            "/{*path}",
             match state.config.backend {
                 config::Backend::Native => any(git_native::git_handler_native),
                 config::Backend::Cgi => any(git_cgi::git_handler_cgi),

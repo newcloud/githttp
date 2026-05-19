@@ -2,8 +2,7 @@ use axum::http::{Request, StatusCode};
 use axum::response::IntoResponse;
 use base64::{Engine, engine::general_purpose::STANDARD};
 use constant_time_eq::constant_time_eq;
-use rand::rngs::OsRng;
-use rand::RngCore;
+use getrandom::fill;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use tracing::warn;
@@ -99,13 +98,13 @@ pub fn verify_auth(
 
 fn dummy_verify() {
     let mut salt = [0u8; 16];
-    OsRng.fill_bytes(&mut salt);
+    fill(&mut salt).unwrap();
     let _ = sha256_hash(&salt, DUMMY_PASSWORD);
 }
 
 pub fn hash_password(password: &str) -> Result<String, std::convert::Infallible> {
     let mut salt = [0u8; 16];
-    OsRng.fill_bytes(&mut salt);
+    fill(&mut salt).unwrap();
     let hash = sha256_hash(&salt, password);
     Ok(format!(
         "$sha256${}${}",

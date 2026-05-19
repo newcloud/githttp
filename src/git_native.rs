@@ -5,7 +5,11 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bytes::Bytes;
-use futures::stream::{self, BoxStream, StreamExt};
+use futures_core::Stream;
+use tokio_stream::{self, StreamExt};
+
+type BoxStream<'a, T> = Pin<Box<dyn Stream<Item = T> + Send + 'a>>;
+
 use std::io;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
@@ -138,7 +142,7 @@ fn build_body_stream(
 ) -> BoxStream<'static, Result<Bytes, io::Error>> {
     if let Some(header) = prepend_header {
         let header_bytes = Bytes::from(header);
-        let header_stream = stream::once(async move { Ok(header_bytes) });
+        let header_stream = tokio_stream::once(Ok(header_bytes));
         let stdout_stream = ReaderStream::new(reader);
         Box::pin(header_stream.chain(stdout_stream))
     } else {
@@ -153,7 +157,7 @@ struct GuardedStream {
     kill_tx: Option<tokio::sync::broadcast::Sender<()>>,
 }
 
-impl futures::Stream for GuardedStream {
+impl Stream for GuardedStream {
     type Item = Result<Bytes, io::Error>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {

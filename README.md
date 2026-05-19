@@ -23,10 +23,10 @@ cargo build --release
 ### Configuration
 
 ```bash
-cp config.example.yaml config.yaml
+cp config.example.toml config.toml
 ```
 
-Edit `config.yaml`:
+Edit `config.toml`:
 
 ```yaml
 git_project_root: "/path/to/git/repos"
@@ -53,18 +53,18 @@ githttp setpassword admin
 githttp deluser admin
 
 # Specify config file
-githttp adduser admin config.yaml
+githttp adduser admin config.toml
 ```
 
 
 ### Start
 
 ```bash
-# Reads config.yaml by default
+# Reads config.toml by default
 githttp
 
 # Specify config file
-githttp -c config.yaml
+githttp -c config.toml
 
 # Quiet mode (suppress terminal log output)
 githttp -q -c config.yaml
@@ -74,7 +74,7 @@ githttp -q -c config.yaml
 
 | Argument | Description |
 |----------|-------------|
-| `-c`, `--config <path>` | Specify config file path (default: config.yaml) |
+| `-c`, `--config <path>` | Specify config file path (default: config.toml) |
 | `-q`, `--quiet` | Quiet mode, suppress terminal log output |
 | `adduser <username>` | Add a user |
 | `setpassword <username>` | Change password |
@@ -88,7 +88,7 @@ cd /path/to/git/repos
 git init --bare my-project.git
 
 # Start the server
-githttp -c config.yaml
+githttp -c config.toml
 
 # Clone
 git clone http://user:pass@localhost:18011/my-project.git

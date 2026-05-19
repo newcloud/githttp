@@ -142,7 +142,7 @@ fn wait_for_server(timeout: Duration) {
     }
 }
 
-fn yaml_escape(p: &Path) -> String {
+fn toml_escape(p: &Path) -> String {
     p.to_string_lossy().replace('\\', "\\\\")
 }
 
@@ -157,7 +157,7 @@ fn detect_git_backend() -> String {
             pb.set_extension("exe");
         }
         if pb.exists() {
-            return yaml_escape(&pb);
+            return toml_escape(&pb);
         }
     }
     let fallback = if cfg!(windows) {
@@ -165,7 +165,7 @@ fn detect_git_backend() -> String {
     } else {
         "/usr/lib/git-core/git-http-backend"
     };
-    yaml_escape(&PathBuf::from(fallback))
+    toml_escape(&PathBuf::from(fallback))
 }
 
 // ── test env ──────────────────────────────────────────────────────
@@ -198,21 +198,21 @@ impl TestEnv {
         let repos = root.join("repos");
 
         // native config: no git_http_backend needed
-        let config_native = root.join("config-native.yaml");
-        let native_yaml = format!(
-            "listen_addr: \"127.0.0.1:{PORT}\"\ngit_project_root: \"{root}\"\nusers: {{}}\nbackend: \"native\"\nlogging:\n  file_enabled: false\n  log_dir: \"logs\"\n",
-            root = yaml_escape(&repos),
+        let config_native = root.join("config-native.toml");
+        let native_toml = format!(
+            "listen_addr = \"127.0.0.1:{PORT}\"\ngit_project_root = \"{root}\"\nbackend = \"native\"\n\n[logging]\nfile_enabled = false\nlog_dir = \"logs\"\n",
+            root = toml_escape(&repos),
         );
-        fs::write(&config_native, native_yaml).unwrap();
+        fs::write(&config_native, native_toml).unwrap();
 
         // cgi config: needs git_http_backend
-        let config_cgi = root.join("config-cgi.yaml");
-        let cgi_yaml = format!(
-            "listen_addr: \"127.0.0.1:{PORT}\"\ngit_project_root: \"{root}\"\ngit_http_backend: \"{backend}\"\nusers: {{}}\nbackend: \"cgi\"\nlogging:\n  file_enabled: false\n  log_dir: \"logs\"\n",
-            root = yaml_escape(&repos),
+        let config_cgi = root.join("config-cgi.toml");
+        let cgi_toml = format!(
+            "listen_addr = \"127.0.0.1:{PORT}\"\ngit_project_root = \"{root}\"\ngit_http_backend = \"{backend}\"\nbackend = \"cgi\"\n\n[logging]\nfile_enabled = false\nlog_dir = \"logs\"\n",
+            root = toml_escape(&repos),
             backend = git_backend,
         );
-        fs::write(&config_cgi, cgi_yaml).unwrap();
+        fs::write(&config_cgi, cgi_toml).unwrap();
 
         Self {
             root,

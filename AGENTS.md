@@ -13,14 +13,14 @@ Single-binary Rust HTTP server that serves Git repositories over HTTP.
 ```
 cargo build          # dev
 cargo build --release
-cargo run            # start server (reads config.yaml from cwd)
-cargo run -- -c /path/to/config.yaml   # custom config with --config/-c flag
-cargo run -- -q -c myconfig.yaml       # quiet mode (no terminal logs)
+cargo run            # start server (reads config.toml from cwd)
+cargo run -- -c /path/to/config.toml   # custom config with --config/-c flag
+cargo run -- -q -c myconfig.toml       # quiet mode (no terminal logs)
 
 # User management (CLI subcommands)
-cargo run -- adduser <username> [config.yaml]       # add user (prompts for password)
-cargo run -- setpassword <username> [config.yaml]   # change password
-cargo run -- deluser <username> [config.yaml]       # delete user
+cargo run -- adduser <username> [config.toml]       # add user (prompts for password)
+cargo run -- setpassword <username> [config.toml]   # change password
+cargo run -- deluser <username> [config.toml]       # delete user
 
 # CLI flags (server mode)
 #   -c / --config <path>    config file path
@@ -41,7 +41,7 @@ cargo run -- deluser <username> [config.yaml]       # delete user
   - `src/users.rs` — CLI user management commands (add/setpassword/del)
 - **Flow (cgi):** HTTP request → Basic Auth verify (SHA-256) → spawn `git-http-backend` → spawn stdin writer (DataStream chunks → child stdin) → stream stdout (BufReader → read_line header parse → ReaderStream → Body::from_stream) → return streaming Response
 - **Flow (native):** HTTP request → Basic Auth verify (SHA-256) → spawn `git upload-pack` / `git receive-pack` directly with `--advertise-refs` or `--stateless-rpc` → stream stdin/stdout (no CGI header parsing) → return streaming Response
-- **Config:** `config.yaml` (serde_yaml). See `Config` struct in `config.rs` for schema.
+- **Config:** `config.toml` (toml). See `Config` struct in `config.rs` for schema.
   - `git_http_backend` is `Option<PathBuf>` in config. When `None` and `backend=cgi`, auto-detect via `resolve_git_http_backend()`. When `backend=native`, it's ignored (returns empty `PathBuf`).
   - `logging.file_enabled: bool` (default `false`) — whether to write logs to file.
   - `logging.log_dir: PathBuf` (default `"logs"`) — log directory.
@@ -57,7 +57,7 @@ cargo run -- deluser <username> [config.yaml]       # delete user
 - **Passwords stored as SHA-256 hashes** — format: `$sha256$<salt_hex>$<hash_hex>`
 - **`Content-Length` header is stripped from CGI output** — axum sets it automatically for streaming bodies.
 - **Edition is 2024** — do not downgrade.
-- **`config.yaml` is in `.gitignore`** — users copy `config.example.yaml` to create it.
+- **`config.toml` is in `.gitignore`** — users copy `config.example.toml` to create it.
 - **Password input**: interactive mode uses `rpassword` (hidden), piped mode reads from stdin (two lines: password + confirm).
 - **BrokenPipe on stdin** is expected and silently handled — child may exit early before all body is sent.
 - **`CGI parser`** uses `BufReader::read_line()` not `windows(4)`. Handles both `\r\n` and `\n` by `trim_end_matches`.
@@ -83,9 +83,9 @@ End-to-end functional test with real git-http-backend:
 ```bash
 # Start server, add user, test clone/push, test auth failure
 git init --bare /path/to/repos/test.git
-./target/release/githttp -c config.yaml &
-echo -e "pass\npass" | ./target/release/githttp adduser user config.yaml
-kill %1 && ./target/release/githttp -c config.yaml &
+./target/release/githttp -c config.toml &
+echo -e "pass\npass" | ./target/release/githttp adduser user config.toml
+kill %1 && ./target/release/githttp -c config.toml &
 git clone http://user:pass@127.0.0.1:18011/test.git
 cd test && touch f && git add . && git commit -m "x" && git push origin master
 cd .. && git clone http://user:pass@127.0.0.1:18011/test.git test2
@@ -185,7 +185,7 @@ ls test-v1-after-v2/cross
 - `RUST_LOG` env var controls log level.
 - Config is loaded before logging init, so `logging` settings are applied correctly.
 
-## Config schema (config.example.yaml)
+## Config schema (config.example.toml)
 
 ```yaml
 git_project_root: "/path/to/git/repos"
@@ -221,7 +221,7 @@ Workflow file: `.github/workflows/build.yml`
 | Windows x86_64 | `githttp-x86_64-pc-windows-msvc.zip` |
 | Linux x86_64 musl | `githttp-x86_64-unknown-linux-musl.tar.gz` |
 
-Each archive contains: binary + `config.example.yaml`
+Each archive contains: binary + `config.example.toml`
 
 ### How to release
 

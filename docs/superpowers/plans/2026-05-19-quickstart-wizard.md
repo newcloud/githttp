@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add `githttp quickstart` interactive wizard for first-time setup (repos root, user creation, auto-generate config.yaml).
+**Goal:** Add `githttp quickstart` interactive wizard for first-time setup (repos root, user creation, auto-generate config.toml).
 
 **Architecture:** New `src/quickstart.rs` module with `run_quickstart()` that drives stdin/stdout prompts. Returns `Option<Config>` — `Some` means user wants to start server, `None` means exit. CLI parsing in `main.rs` gets a new `quickstart` positional subcommand.
 
@@ -386,7 +386,7 @@ Expected: clean compile
 
 ```yaml
 # Change:
-          Copy-Item config.example.yaml pkg/
+          Copy-Item config.example.toml pkg/
 # To:
           Copy-Item quickstart.bat pkg/
 ```
@@ -396,7 +396,7 @@ Expected: clean compile
 ```yaml
 # Change:
           cp target/x86_64-unknown-linux-musl/release/githttp .
-          tar -czf githttp-x86_64-unknown-linux-musl.tar.gz githttp config.example.yaml
+          tar -czf githttp-x86_64-unknown-linux-musl.tar.gz githttp config.example.toml
 # To:
           cp target/x86_64-unknown-linux-musl/release/githttp .
           chmod +x quickstart.sh
