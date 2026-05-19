@@ -1,0 +1,45 @@
+name: Build
+
+on:
+  push:
+    branches: [master, main]
+    tags: ["v*"]
+  pull_request:
+    branches: [master, main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-windows:
+    name: Windows x86_64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - run: cargo build --release
+      - run: Copy-Item config.example.yaml target/release/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: githttp-windows-x86_64
+          path: |
+            target/release/githttp.exe
+            target/release/config.example.yaml
+
+  build-linux-musl:
+    name: Linux x86_64 (musl)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: x86_64-unknown-linux-musl
+      - run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - run: cargo build --release --target x86_64-unknown-linux-musl
+      - run: cp config.example.yaml target/x86_64-unknown-linux-musl/release/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: githttp-linux-x86_64-musl
+          path: |
+            target/x86_64-unknown-linux-musl/release/githttp
+            target/x86_64-unknown-linux-musl/release/config.example.yaml
