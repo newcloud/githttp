@@ -17,5 +17,14 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-appender = "0.2"
 base64 = "0.22"
+colored = "2"
+dirs = "5"
+local-ip-address = "0.6"
 tokio-util = { version = "0.7", features = ["io"] }
 futures = "0.3"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
