@@ -1,9 +1,9 @@
 mod auth;
-mod quickstart;
 mod cgi;
 mod config;
 mod git_cgi;
 mod git_native;
+mod quickstart;
 mod users;
 
 use axum::{Router, routing::any};
@@ -198,19 +198,13 @@ async fn main() {
                     );
                     std::process::exit(1);
                 }
-                let _guard = init_logging(
-                    config.logging.file_enabled,
-                    &config.logging.log_dir,
-                    false,
-                );
+                let _guard =
+                    init_logging(config.logging.file_enabled, &config.logging.log_dir, false);
                 run_server(config).await;
             }
             return;
         }
-        CliCommand::Server {
-            config_path,
-            quiet,
-        } => {
+        CliCommand::Server { config_path, quiet } => {
             let config = Config::from_file(&config_path).unwrap_or_else(|| {
                 eprintln!("No config file found at '{}', using defaults", config_path);
                 eprintln!("Copy config.example.yaml to config.yaml to customize");
@@ -230,15 +224,15 @@ async fn main() {
                 );
                 std::process::exit(1);
             }
-            let _guard =
-                init_logging(config.logging.file_enabled, &config.logging.log_dir, quiet);
+            let _guard = init_logging(config.logging.file_enabled, &config.logging.log_dir, quiet);
             info!("Git project root: {:?}", config.git_project_root);
-            info!(
-                "Git HTTP backend: {:?}",
-                config.resolve_git_http_backend()
-            );
+
             info!("User count: {}", config.users.len());
-            info!("Backend: {:?}", config.backend);
+            if config.backend == config::Backend::Cgi {
+                info!("Backend: CGI");
+                info!("Git HTTP backend: {:?}", config.resolve_git_http_backend());
+            }
+
             info!(
                 "Log file: {}",
                 if config.logging.file_enabled {
@@ -289,6 +283,15 @@ fn init_logging(
 async fn run_server(config: Config) {
     let listen_addr = config.listen_addr.clone();
 
+    let repos = config::scan_git_repos(&config.git_project_root);
+    let host = config::resolve_display_host(&listen_addr);
+    let port = listen_addr.rsplit(':').next().unwrap_or("18011");
+    let repo_urls: Vec<String> = repos
+        .iter()
+        .map(|r| format!("http://<user>:<password>@{}:{}/{}", host, port, r))
+        .collect();
+
+    let project_root = config.git_project_root.clone();
     let state = Arc::new(AppState { config });
 
     let app = Router::new()
@@ -305,6 +308,18 @@ async fn run_server(config: Config) {
         .await
         .expect("Failed to bind address");
     info!("Git server listening on http://{}", listen_addr);
+
+    if !repo_urls.is_empty() {
+        info!("Available repositories:");
+        for url in &repo_urls {
+            info!("  {}", url);
+        }
+    } else {
+        info!("No repositories found in {}", project_root.display());
+        info!("Create one:");
+        info!("  cd {}", project_root.display());
+        info!("  git init --bare demo.git");
+    }
 
     axum::serve(listener, app)
         .with_graceful_shutdown(async {

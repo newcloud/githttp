@@ -106,7 +106,7 @@ git clone http://user:pass@localhost:18011/my-project.git
 
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `git_project_root` | path | `C:\git\repos` (Win) `/mnt/git` (Linux) | 裸仓库根目录 |
+| `git_project_root` | path | `%USERPROFILE%\repos` (Win) `~/repos` (Linux) | 裸仓库根目录 |
 | `git_http_backend` | path? | 无 | git-http-backend 路径，仅 cgi 模式需要，不填自动检测 |
 | `listen_addr` | string | `0.0.0.0:18011` | 监听地址和端口 |
 | `users` | map | `{}` | 用户名 → SHA-256 哈希密码（通过 `githttp adduser` 生成） |
