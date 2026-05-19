@@ -1,4 +1,5 @@
 mod auth;
+mod quickstart;
 mod cgi;
 mod config;
 mod git_cgi;
@@ -18,6 +19,9 @@ enum CliCommand {
     Server {
         config_path: String,
         quiet: bool,
+    },
+    Quickstart {
+        config_path: String,
     },
     AddUser {
         username: String,
@@ -121,6 +125,9 @@ fn parse_args() -> CliCommand {
                 config_path,
             }
         }
+        "quickstart" => CliCommand::Quickstart {
+            config_path: default_config.clone(),
+        },
         _ => CliCommand::Server {
             config_path: positional[1].clone(),
             quiet,
@@ -139,6 +146,7 @@ fn print_help() {
     eprintln!("  githttp adduser <username> [config.yaml]");
     eprintln!("  githttp setpassword <username> [config.yaml]");
     eprintln!("  githttp deluser <username> [config.yaml]");
+    eprintln!("  githttp quickstart                   Interactive setup wizard");
     eprintln!();
     eprintln!("Options:");
     eprintln!("  -c, --config <path>    Config file path");
@@ -172,6 +180,31 @@ async fn main() {
             config_path,
         } => {
             users::cmd_del_user(&username, &config_path);
+            return;
+        }
+        CliCommand::Quickstart { config_path } => {
+            if let Some(config) = quickstart::run_quickstart(&config_path) {
+                if !config.git_project_root.exists() {
+                    eprintln!(
+                        "Error: git_project_root {:?} does not exist",
+                        config.git_project_root
+                    );
+                    std::process::exit(1);
+                }
+                if !config.git_project_root.is_dir() {
+                    eprintln!(
+                        "Error: git_project_root {:?} is not a directory",
+                        config.git_project_root
+                    );
+                    std::process::exit(1);
+                }
+                let _guard = init_logging(
+                    config.logging.file_enabled,
+                    &config.logging.log_dir,
+                    false,
+                );
+                run_server(config).await;
+            }
             return;
         }
         CliCommand::Server {

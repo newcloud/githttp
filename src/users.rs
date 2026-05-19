@@ -11,7 +11,7 @@ pub fn load_config_or_exit(config_path: &str) -> Config {
     })
 }
 
-fn read_password_secure(prompt: &str) -> String {
+pub fn read_password_secure(prompt: &str) -> String {
     print!("{}", prompt);
     std::io::stdout().flush().unwrap();
 

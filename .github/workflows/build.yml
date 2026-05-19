@@ -21,7 +21,7 @@ jobs:
       - run: |
           New-Item -ItemType Directory -Path pkg -Force
           Copy-Item target/release/githttp.exe pkg/
-          Copy-Item config.example.yaml pkg/
+          Copy-Item quickstart.bat pkg/
           Compress-Archive -Path pkg/* -DestinationPath githttp-x86_64-pc-windows-msvc.zip
       - uses: actions/upload-artifact@v7
         with:
@@ -40,7 +40,8 @@ jobs:
       - run: cargo build --release --target x86_64-unknown-linux-musl
       - run: |
           cp target/x86_64-unknown-linux-musl/release/githttp .
-          tar -czf githttp-x86_64-unknown-linux-musl.tar.gz githttp config.example.yaml
+          chmod +x quickstart.sh
+          tar -czf githttp-x86_64-unknown-linux-musl.tar.gz githttp quickstart.sh
       - uses: actions/upload-artifact@v7
         with:
           name: githttp-x86_64-unknown-linux-musl
