@@ -40,7 +40,6 @@ jobs:
       - run: cargo build --release --target x86_64-unknown-linux-musl
       - run: |
           cp target/x86_64-unknown-linux-musl/release/githttp .
-          cp config.example.yaml .
           tar -czf githttp-x86_64-unknown-linux-musl.tar.gz githttp config.example.yaml
       - uses: actions/upload-artifact@v4
         with:
