@@ -9,7 +9,6 @@
 | **Native**（默认）| `backend: "native"` | 直接调用 `git upload-pack` / `git receive-pack`，无 CGI 依赖 |
 | **CGI** | `backend: "cgi"` | 通过 `git-http-backend` CGI 程序代理请求 |
 
-两种模式共用 `/*path` 路由，通过 `config.yaml` 中的 `backend` 字段切换。
 
 ## 快速开始
 
@@ -38,8 +37,6 @@ logging:
   log_dir: "logs"
 ```
 
-> `users` 为空时拒绝所有请求，必须通过 `adduser` 添加至少一个用户。
-> `git_http_backend` 仅 `backend=cgi` 时需要；不填则自动检测常见路径。
 
 ### 用户管理
 
@@ -54,14 +51,9 @@ githttp setpassword admin
 githttp deluser admin
 
 # 指定配置文件
-githttp adduser admin myconfig.yaml
+githttp adduser admin config.yaml
 ```
 
-非交互模式（脚本/CI）通过 stdin 输入两行（密码 + 确认）：
-
-```bash
-echo -e "password\npassword" | githttp adduser admin
-```
 
 ### 启动
 
@@ -70,19 +62,18 @@ echo -e "password\npassword" | githttp adduser admin
 githttp
 
 # 指定配置文件
-githttp -c myconfig.yaml
+githttp -c config.yaml
 
 # 安静模式（不输出终端日志）
-githttp -q -c myconfig.yaml
+githttp -q -c config.yaml
 ```
 
 ## CLI 参数
 
 | 参数 | 说明 |
 |------|------|
-| `-c`, `--config <path>` | 指定配置文件路径 |
-| `--config=<path>`, `-c=<path>` | 等价写法 |
-| `-q`, `--quiet` | 不输出日志到终端 |
+| `-c`, `--config <path>` | 指定配置文件路径（默认 config.yaml） |
+| `-q`, `--quiet` | 安静模式，不输出终端日志 |
 | `adduser <username>` | 添加用户 |
 | `setpassword <username>` | 修改密码 |
 | `deluser <username>` | 删除用户 |
@@ -93,6 +84,9 @@ githttp -q -c myconfig.yaml
 # 创建裸仓库
 cd /path/to/git/repos
 git init --bare my-project.git
+
+# 启动服务器
+githttp
 
 # clone
 git clone http://user:pass@localhost:18011/my-project.git
@@ -111,10 +105,10 @@ git -c protocol.version=2 clone http://user:pass@localhost:18011/my-project.git
 
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `git_project_root` | path | `C:\git` (Win) `/mnt/git` (Linux) | 裸仓库根目录 |
+| `git_project_root` | path | `C:\git\repos` (Win) `/mnt/git` (Linux) | 裸仓库根目录 |
 | `git_http_backend` | path? | 无 | git-http-backend 路径，仅 cgi 模式需要，不填自动检测 |
 | `listen_addr` | string | `0.0.0.0:18011` | 监听地址和端口 |
-| `users` | map | `{}` | 用户名 → SHA-256 哈希密码 |
+| `users` | map | `{}` | 用户名 → SHA-256 哈希密码（通过 `githttp adduser` 生成） |
 | `backend` | string | `native` | `"native"` 或 `"cgi"` |
 | `logging.file_enabled` | bool | `false` | 是否写入日志文件 |
 | `logging.log_dir` | path | `"logs"` | 日志文件目录 |
@@ -168,3 +162,7 @@ Client ←→ Axum HTTP ←→ 后端处理器
 - `sha2` — 密码哈希 (SHA-256)
 - `tracing` + `tracing-subscriber` + `tracing-appender` — 日志
 - `serde` + `serde_yaml` — 配置序列化
+
+## 开发
+
+本项目使用 [OpenCode](https://opencode.ai) 辅助开发，模型为 DeepSeek、Qwen3.6Plus。
