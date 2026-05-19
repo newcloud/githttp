@@ -106,7 +106,7 @@ fn ask_yes_no(prompt: &str, default_yes: bool) -> bool {
 }
 
 fn print_banner() {
-    println!("{}", "  ◆  githttp — Git HTTP Server  ◆".styled().bold().bright_white());
+    println!("{}", "  ►  githttp — Git HTTP Server  ◄".styled().bold().bright_white());
     println!();
     println!("This wizard will help you set up a Git HTTP server.");
     println!("You'll configure:");
@@ -189,6 +189,8 @@ fn step1_repos_root(current: Option<PathBuf>, from_config: bool) -> PathBuf {
 
 fn step_listen_addr(current: &str) -> String {
     println!();
+    println!("{}", "Step 2: Listen Address".styled().bold().underline());
+    println!();
     println!("The address and port the server will listen on.");
     println!();
     println!("Current: {}", current);
@@ -210,7 +212,7 @@ fn step2_add_user(config: &mut Config) {
         println!();
         println!("{}", "Create a User".styled().bold().underline());
         println!();
-        println!("This username and password are used with git clone/push.");
+        println!("This username and password are used with git clone/push/pull/fetch.");
         println!();
 
         print!("Enter username: ");
@@ -240,7 +242,7 @@ fn step2_add_user(config: &mut Config) {
 
         println!();
         std::thread::sleep(Duration::from_millis(600));
-        println!("{}", format!("✓ Great! User '{}' has been created.", username).styled().green().bold());
+        println!("{}", format!("[OK] User '{}' has been created.", username).styled().green().bold());
         println!("  {}", format!("Usage: http://{}:<password>@127.0.0.1:18011/repo.git", username).styled().dimmed());
         println!();
         return;
@@ -248,9 +250,9 @@ fn step2_add_user(config: &mut Config) {
 }
 fn step_logging(current: &LoggingConfig) -> LoggingConfig {
     println!();
-    println!("{}", "Logging".styled().bold().underline());
+    println!("{}", "Step 3: Logging".styled().bold().underline());
     println!();
-    println!("Server can write access logs to a file.");
+    println!("Server can write logs to a file for auditing.");
     println!("This helps you track who accessed your repos.");
     println!();
     let resolved = std::env::current_dir()
@@ -265,7 +267,7 @@ fn step_logging(current: &LoggingConfig) -> LoggingConfig {
         let rel = format!(".{}logs{}", sep, sep);
         println!();
         println!("Log file location [default {}]:", rel);
-        println!("  eg: relative {}  or  absolute {}", rel, resolved.display());
+        println!("  e.g. relative {} or absolute {}", rel, resolved.display());
         println!("  (Press Enter for default, or type a custom path)");
         print!("Enter path: ");
         io::stdout().flush().unwrap();
@@ -282,7 +284,7 @@ fn step_logging(current: &LoggingConfig) -> LoggingConfig {
     LoggingConfig { file_enabled, log_dir }
 }
 
-fn step4_summary(config: &Config, config_path: &str) {
+fn print_summary(config: &Config, config_path: &str) {
     println!();
     println!("{}", "Setup Complete!".styled().bold().green());
     println!();
@@ -363,7 +365,7 @@ pub fn run_quickstart(config_path: &str) -> Option<Config> {
         }
     }
 
-    step4_summary(&config, config_path);
+    print_summary(&config, config_path);
 
     println!();
 
