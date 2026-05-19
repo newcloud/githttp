@@ -4,7 +4,49 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
 use std::fs;
-use colored::Colorize;
+use anstyle::{AnsiColor, Color, Style};
+
+/// Thin styled-text wrapper replacing the `colored` crate.
+struct Styled {
+    text: String,
+    style: Style,
+}
+
+impl Styled {
+    fn new(text: impl Into<String>) -> Self {
+        Self {
+            text: text.into(),
+            style: Style::new(),
+        }
+    }
+    fn bold(self) -> Self { Self { style: self.style.bold(), ..self } }
+    fn underline(self) -> Self { Self { style: self.style.underline(), ..self } }
+    fn dimmed(self) -> Self { Self { style: self.style.dimmed(), ..self } }
+    fn red(self) -> Self { Self { style: self.style.fg_color(Some(Color::from(AnsiColor::Red))), ..self } }
+    fn green(self) -> Self { Self { style: self.style.fg_color(Some(Color::from(AnsiColor::Green))), ..self } }
+    fn yellow(self) -> Self { Self { style: self.style.fg_color(Some(Color::from(AnsiColor::Yellow))), ..self } }
+    fn cyan(self) -> Self { Self { style: self.style.fg_color(Some(Color::from(AnsiColor::Cyan))), ..self } }
+    fn bright_white(self) -> Self { Self { style: self.style.fg_color(Some(Color::from(AnsiColor::BrightWhite))), ..self } }
+}
+
+impl std::fmt::Display for Styled {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}{}{:#}", self.style, self.text, self.style)
+    }
+}
+
+trait Colorize {
+    fn styled(self) -> Styled;
+}
+impl Colorize for &str {
+    fn styled(self) -> Styled { Styled::new(self) }
+}
+impl Colorize for String {
+    fn styled(self) -> Styled { Styled::new(self) }
+}
+impl Colorize for &String {
+    fn styled(self) -> Styled { Styled::new(self) }
+}
 
 use crate::auth::hash_password;
 use crate::config::Config;
@@ -64,21 +106,21 @@ fn ask_yes_no(prompt: &str, default_yes: bool) -> bool {
 }
 
 fn print_banner() {
-    println!("{}", "  ◆  githttp — Git HTTP Server  ◆".bold().bright_white());
+    println!("{}", "  ◆  githttp — Git HTTP Server  ◆".styled().bold().bright_white());
     println!();
     println!("This wizard will help you set up a Git HTTP server.");
     println!("You'll configure:");
     println!("  • Where your Git repositories are stored");
     println!("  • A user account for Git access (clone/push/pull)");
     println!();
-    println!("{}", "Let's get started!".bold());
+    println!("{}", "Let's get started!".styled().bold());
     println!();
 }
 
 fn step1_repos_root(current: Option<PathBuf>, from_config: bool) -> PathBuf {
     loop {
         println!();
-        println!("{}", "Step 1: Git Repository Root".bold().underline());
+        println!("{}", "Step 1: Git Repository Root".styled().bold().underline());
         println!();
         println!("This is the folder where your Git bare repos will live.");
         println!("A \"bare repo\" is a server-side Git repo (no working files),");
@@ -86,9 +128,9 @@ fn step1_repos_root(current: Option<PathBuf>, from_config: bool) -> PathBuf {
         println!();
         if let Some(ref current_path) = current {
             if from_config {
-                println!("  {} {}", "Source: config.toml →".dimmed(), current_path.display().to_string().bright_white());
+                println!("  {} {}", "Source: config.toml →".styled().dimmed(), current_path.display().to_string().styled().bright_white());
             } else {
-                println!("  Default: {}", current_path.display().to_string().bright_white());
+                println!("  Default: {}", current_path.display().to_string().styled().bright_white());
             }
             println!("  (Press Enter to keep, or type a new path)");
             println!();
@@ -101,7 +143,7 @@ fn step1_repos_root(current: Option<PathBuf>, from_config: bool) -> PathBuf {
                 Some(ref p) => p.clone(),
                 None => {
                     println!();
-                    println!("{}", "Path cannot be empty.".red());
+                    println!("{}", "Path cannot be empty.".styled().red());
                     println!();
                     continue;
                 }
@@ -113,16 +155,16 @@ fn step1_repos_root(current: Option<PathBuf>, from_config: bool) -> PathBuf {
         if !path.exists() {
             if let Err(e) = fs::create_dir_all(&path) {
                 println!();
-                println!("{}", format!("Cannot create directory: {}", e).red().bold());
+                println!("{}", format!("Cannot create directory: {}", e).styled().red().bold());
                 println!();
                 continue;
             }
-            println!("  {}", format!("Created: {}", path.display()).dimmed());
+            println!("  {}", format!("Created: {}", path.display()).styled().dimmed());
         }
 
         if !path.is_dir() {
             println!();
-            println!("{}", "Path is not a directory.".red().bold());
+            println!("{}", "Path is not a directory.".styled().red().bold());
             println!();
             continue;
         }
@@ -166,7 +208,7 @@ fn step_listen_addr(current: &str) -> String {
 fn step2_add_user(config: &mut Config) {
     loop {
         println!();
-        println!("{}", "Create a User".bold().underline());
+        println!("{}", "Create a User".styled().bold().underline());
         println!();
         println!("This username and password are used with git clone/push.");
         println!();
@@ -177,7 +219,7 @@ fn step2_add_user(config: &mut Config) {
 
         if let Err(err) = validate_username(&username, &config.users) {
             println!();
-            println!("{}", err.red().bold());
+            println!("{}", err.styled().red().bold());
             println!();
             continue;
         }
@@ -188,7 +230,7 @@ fn step2_add_user(config: &mut Config) {
 
         if let Err(err) = validate_password_pair(&password, &confirm) {
             println!();
-            println!("{}", err.red().bold());
+            println!("{}", err.styled().red().bold());
             println!();
             continue;
         }
@@ -198,15 +240,15 @@ fn step2_add_user(config: &mut Config) {
 
         println!();
         std::thread::sleep(Duration::from_millis(600));
-        println!("{}", format!("✓ Great! User '{}' has been created.", username).green().bold());
-        println!("  {}", format!("Usage: http://{}:<password>@127.0.0.1:18011/repo.git", username).dimmed());
+        println!("{}", format!("✓ Great! User '{}' has been created.", username).styled().green().bold());
+        println!("  {}", format!("Usage: http://{}:<password>@127.0.0.1:18011/repo.git", username).styled().dimmed());
         println!();
         return;
     }
 }
 fn step_logging(current: &LoggingConfig) -> LoggingConfig {
     println!();
-    println!("{}", "Logging".bold().underline());
+    println!("{}", "Logging".styled().bold().underline());
     println!();
     println!("Server can write access logs to a file.");
     println!("This helps you track who accessed your repos.");
@@ -242,32 +284,32 @@ fn step_logging(current: &LoggingConfig) -> LoggingConfig {
 
 fn step4_summary(config: &Config, config_path: &str) {
     println!();
-    println!("{}", "Setup Complete!".bold().green());
+    println!("{}", "Setup Complete!".styled().bold().green());
     println!();
-    println!("  Config file     {}", config_path.yellow());
-    println!("  Repos directory {}", config.git_project_root.display().to_string().bright_white());
-    println!("  Listen address  {}", config.listen_addr.bright_white());
+    println!("  Config file     {}", config_path.styled().yellow());
+    println!("  Repos directory {}", config.git_project_root.display().to_string().styled().bright_white());
+    println!("  Listen address  {}", config.listen_addr.as_str().styled().bright_white());
 
     let user_list: Vec<String> = config.users.keys().cloned().collect();
     if user_list.len() == 1 {
-        println!("  Users           1: {}", user_list[0].cyan());
+        println!("  Users           1: {}", user_list[0].as_str().styled().cyan());
     } else {
-        println!("  Users           {}: {}", user_list.len(), user_list.join(", ").cyan());
+        println!("  Users           {}: {}", user_list.len(), user_list.join(", ").styled().cyan());
     }
     println!();
-    println!("{}", "How to use:".bold().underline());
+    println!("{}", "How to use:".styled().bold().underline());
     println!();
     println!("  Create a bare repo:");
-    println!("    {}", format!("git init --bare {}\\hello.git", config.git_project_root.display()).dimmed());
+    println!("    {}", format!("git init --bare {}\\hello.git", config.git_project_root.display()).styled().dimmed());
     println!();
     if let Some(user) = user_list.first() {
         println!("  Clone:");
-        println!("    {}", format!("git clone http://{}:<password>@127.0.0.1:18011/hello.git", user).dimmed());
+        println!("    {}", format!("git clone http://{}:<password>@127.0.0.1:18011/hello.git", user).styled().dimmed());
         println!();
     }
     println!("  Push:");
-    println!("    {}", "cd hello".dimmed());
-    println!("    {}", "git push".dimmed());
+    println!("    {}", "cd hello".styled().dimmed());
+    println!("    {}", "git push".styled().dimmed());
     println!();
 }
 
@@ -280,8 +322,8 @@ pub fn run_quickstart(config_path: &str) -> Option<Config> {
     let mut config = existing_config.unwrap_or_default();
 
     if has_existing {
-        println!("{} {}", "Config file found:".bold(), config_path.yellow());
-        println!("  {}", "It will be updated. Press Enter to keep current values.".dimmed());
+        println!("{} {}", "Config file found:".styled().bold(), config_path.styled().yellow());
+        println!("  {}", "It will be updated. Press Enter to keep current values.".styled().dimmed());
         println!();
     }
 
@@ -303,7 +345,7 @@ pub fn run_quickstart(config_path: &str) -> Option<Config> {
 
     let should_add_users = if !config.users.is_empty() {
         let existing: Vec<String> = config.users.keys().cloned().collect();
-        println!("{} {}", "Existing users:".bold(), existing.join(", ").cyan());
+        println!("{} {}", "Existing users:".styled().bold(), existing.join(", ").styled().cyan());
         ask_yes_no("Add another user?", false)
     } else {
         true
@@ -332,9 +374,9 @@ pub fn run_quickstart(config_path: &str) -> Option<Config> {
     println!();
     println!(
         "{}  {} {}",
-        "No problem! Start it anytime:".dimmed(),
-        "githttp -c".yellow(),
-        config_path.yellow()
+        "No problem! Start it anytime:".styled().dimmed(),
+        "githttp -c".styled().yellow(),
+        config_path.styled().yellow()
     );
     println!();
     None

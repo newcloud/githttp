@@ -316,7 +316,7 @@ async fn run_server(config: Config) {
         }
     } else {
         info!("No repositories found in {}", project_root.display());
-        info!("Create one:");
+        info!("你可以这样创建:");
         info!("  cd {}", project_root.display());
         info!("  git init --bare demo.git");
     }
