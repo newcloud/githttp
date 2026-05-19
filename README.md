@@ -1,30 +1,32 @@
 ﻿# Git HTTP Server
 
-基于 Axum 的轻量级 Git HTTP 服务器，支持两种后端模式，全链路流式传输。
+> **WARNING: Do not use in production environments! Intended for local, secure environments only.**
 
-## 后端模式
+A lightweight Git HTTP server built on Axum, supporting two backend modes with full-pipeline streaming.
 
-| 模式 | 配置值 | 说明 |
-|------|--------|------|
-| **Native**（默认）| `backend: "native"` | 直接调用 `git upload-pack` / `git receive-pack`，无 CGI 依赖 |
-| **CGI** | `backend: "cgi"` | 通过 `git-http-backend` CGI 程序代理请求 |
+## Backend Modes
+
+| Mode | Config Value | Description |
+|------|-------------|-------------|
+| **Native** (default) | `backend: "native"` | Directly invokes `git upload-pack` / `git receive-pack`, no CGI dependency |
+| **CGI** | `backend: "cgi"` | Proxies requests through `git-http-backend` CGI program |
 
 
-## 快速开始
+## Quick Start
 
-### 编译
+### Build
 
 ```bash
 cargo build --release
 ```
 
-### 配置
+### Configuration
 
 ```bash
 cp config.example.yaml config.yaml
 ```
 
-编辑 `config.yaml`：
+Edit `config.yaml`:
 
 ```yaml
 git_project_root: "/path/to/git/repos"
@@ -38,131 +40,130 @@ logging:
 ```
 
 
-### 用户管理
+### User Management
 
 ```bash
-# 添加用户
+# Add a user
 githttp adduser admin
 
-# 修改密码
+# Change password
 githttp setpassword admin
 
-# 删除用户
+# Delete a user
 githttp deluser admin
 
-# 指定配置文件
+# Specify config file
 githttp adduser admin config.yaml
 ```
 
 
-### 启动
+### Start
 
 ```bash
-# 默认读取 config.yaml
+# Reads config.yaml by default
 githttp
 
-# 指定配置文件
+# Specify config file
 githttp -c config.yaml
 
-# 安静模式（不输出终端日志）
+# Quiet mode (suppress terminal log output)
 githttp -q -c config.yaml
 ```
 
-## CLI 参数
+## CLI Arguments
 
-| 参数 | 说明 |
-|------|------|
-| `-c`, `--config <path>` | 指定配置文件路径（默认 config.yaml） |
-| `-q`, `--quiet` | 安静模式，不输出终端日志 |
-| `adduser <username>` | 添加用户 |
-| `setpassword <username>` | 修改密码 |
-| `deluser <username>` | 删除用户 |
+| Argument | Description |
+|----------|-------------|
+| `-c`, `--config <path>` | Specify config file path (default: config.yaml) |
+| `-q`, `--quiet` | Quiet mode, suppress terminal log output |
+| `adduser <username>` | Add a user |
+| `setpassword <username>` | Change password |
+| `deluser <username>` | Delete a user |
 
-## 使用示例
+## Usage Examples
 
 ```bash
-# 创建裸仓库
+# Create a bare repository
 cd /path/to/git/repos
 git init --bare my-project.git
 
-# 启动服务器
-githttp
+# Start the server
+githttp -c config.yaml
 
-# clone
+# Clone
 git clone http://user:pass@localhost:18011/my-project.git
 
-# push
+# Push
 cd my-project
 echo "# README" > README.md
 git add . && git commit -m "init"
 git push origin master
 
-# protocol v2
-git -c protocol.version=2 clone http://user:pass@localhost:18011/my-project.git
+git clone http://user:pass@localhost:18011/my-project.git
 ```
 
-## 配置说明
+## Config Reference
 
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `git_project_root` | path | `C:\git\repos` (Win) `/mnt/git` (Linux) | 裸仓库根目录 |
-| `git_http_backend` | path? | 无 | git-http-backend 路径，仅 cgi 模式需要，不填自动检测 |
-| `listen_addr` | string | `0.0.0.0:18011` | 监听地址和端口 |
-| `users` | map | `{}` | 用户名 → SHA-256 哈希密码（通过 `githttp adduser` 生成） |
-| `backend` | string | `native` | `"native"` 或 `"cgi"` |
-| `logging.file_enabled` | bool | `false` | 是否写入日志文件 |
-| `logging.log_dir` | path | `"logs"` | 日志文件目录 |
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `git_project_root` | path | `C:\git\repos` (Win) `/mnt/git` (Linux) | Bare repository root directory |
+| `git_http_backend` | path? | None | git-http-backend path, only needed for CGI mode; auto-detected if omitted |
+| `listen_addr` | string | `0.0.0.0:18011` | Listen address and port |
+| `users` | map | `{}` | Username → SHA-256 hashed password (generated via `githttp adduser`) |
+| `backend` | string | `native` | `"native"` or `"cgi"` |
+| `logging.file_enabled` | bool | `false` | Whether to write logs to file |
+| `logging.log_dir` | path | `"logs"` | Log file directory |
 
-## 日志
+## Logging
 
-- **终端输出**（带颜色）：默认开启，`-q`/`--quiet` 关闭
-- **文件输出**（无 ANSI）：默认关闭，`logging.file_enabled: true` 开启
-- 文件按日滚动：`logs/githttp.log.YYYY-MM-DD`
-- 日志级别通过 `RUST_LOG` 环境变量控制（默认 `githttp=info`）
+- **Terminal output** (colored): enabled by default, disabled with `-q`/`--quiet`
+- **File output** (no ANSI): disabled by default, enabled with `logging.file_enabled: true`
+- Daily rolling files: `logs/githttp.log.YYYY-MM-DD`
+- Log level controlled via `RUST_LOG` env var (default: `githttp=info`)
 
-## 测试
+## Testing
 
 ```bash
-# 单元测试（26 个）
+# Unit tests (26)
 cargo test --bin githttp
 
-# 集成测试
+# Integration tests
 cargo test --test workflow
 ```
 
-## 架构
+## Architecture
 
 ```
-Client ←→ Axum HTTP ←→ 后端处理器
-                         ├─ Native: git upload-pack / receive-pack（直接调用）
-                         └─ CGI:    git-http-backend（CGI 代理）
+Client ←→ Axum HTTP ←→ Backend Handler
+                         ├─ Native: git upload-pack / receive-pack (direct invocation)
+                         └─ CGI:    git-http-backend (CGI proxy)
 
-入向流：Request Body → DataStream → tokio::spawn → 子进程 stdin
-出向流：子进程 stdout → ReaderStream → Body::from_stream → Response
+Inbound:  Request Body → DataStream → tokio::spawn → child stdin
+Outbound: child stdout → ReaderStream → Body::from_stream → Response
 ```
 
-全链路流式传输：请求体数据块到达即写入子进程，响应体实时读取返回，内存常驻 ~KB，处理数 GB 的 push/clone 不 OOM。
+Full-pipeline streaming: request body chunks are written to the child process as they arrive, and response body is read and returned in real time. Memory footprint stays at ~KB, handling multi-GB pushes and clones without OOM.
 
-## 模块结构
+## Module Structure
 
-| 模块 | 文件 | 职责 |
-|------|------|------|
-| `config` | `src/config.rs` | 配置解析、后端检测、`detect_git_executable`、`verify_repo_path` |
-| `auth` | `src/auth.rs` | Basic Auth 验证、SHA-256 密码哈希 |
-| `git_cgi` | `src/git_cgi.rs` | CGI 后端：代理 git-http-backend |
-| `git_native` | `src/git_native.rs` | Native 后端：直接调用 git 命令 |
-| `cgi` | `src/cgi.rs` | 流式 CGI 响应头部解析与构造 |
-| `users` | `src/users.rs` | CLI 用户管理命令 |
+| Module | File | Responsibility |
+|--------|------|---------------|
+| `config` | `src/config.rs` | Config parsing, backend detection, `detect_git_executable`, `verify_repo_path` |
+| `auth` | `src/auth.rs` | Basic Auth verification, SHA-256 password hashing |
+| `git_cgi` | `src/git_cgi.rs` | CGI backend: proxy git-http-backend |
+| `git_native` | `src/git_native.rs` | Native backend: directly invoke git commands |
+| `cgi` | `src/cgi.rs` | Streaming CGI response header parsing and construction |
+| `users` | `src/users.rs` | CLI user management commands |
 
-## 技术栈
+## Tech Stack
 
-- `axum` — HTTP 框架
-- `tokio` — 异步运行时 + 子进程管理
-- `tokio-util` — `ReaderStream` 流式转换
-- `sha2` — 密码哈希 (SHA-256)
-- `tracing` + `tracing-subscriber` + `tracing-appender` — 日志
-- `serde` + `serde_yaml` — 配置序列化
+- `axum` — HTTP framework
+- `tokio` — Async runtime + child process management
+- `tokio-util` — `ReaderStream` streaming conversion
+- `sha2` — Password hashing (SHA-256)
+- `tracing` + `tracing-subscriber` + `tracing-appender` — Logging
+- `serde` + `serde_yaml` — Config serialization
 
-## 开发
+## Development
 
-本项目使用 [OpenCode](https://opencode.ai) 辅助开发，模型为 DeepSeek、Qwen3.6Plus。
+This project uses [OpenCode](https://opencode.ai) for AI-assisted development, with models DeepSeek V4 and Qwen3.6 Plus.
