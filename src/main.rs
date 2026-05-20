@@ -237,9 +237,9 @@ async fn main() {
         }
         CliCommand::Server { config_path, quiet } => {
             let config = Config::from_file(&config_path).unwrap_or_else(|| {
-                eprintln!("No config file found at '{}', using defaults", config_path);
-                eprintln!("Copy config.example.toml to config.toml to customize");
-                Config::default()
+                eprintln!("No config file found at '{}'", config_path);
+                eprintln!("Run 'githttp quickstart' for interactive setup.");
+                std::process::exit(1);
             });
             if !config.git_project_root.exists() {
                 eprintln!(

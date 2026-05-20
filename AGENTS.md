@@ -64,7 +64,7 @@ cargo run -- deluser <username> [config.toml]       # delete user
 - **Passwords stored as SHA-256 hashes** — format: `$sha256$<salt_hex>$<hash_hex>`
 - **`Content-Length` header is stripped from CGI output** — axum sets it automatically for streaming bodies.
 - **Edition is 2024** — do not downgrade.
-- **`config.toml` is in `.gitignore`** — users copy `config.example.toml` to create it.
+- **`config.toml` is in `.gitignore`** — users run `quickstart.bat` / `quickstart.sh` to generate it interactively.
 - **Password input**: interactive mode uses `rpassword` (hidden), piped mode reads from stdin (two lines: password + confirm).
 - **BrokenPipe on stdin** is expected and silently handled — child may exit early before all body is sent.
 - **`CGI parser`** uses `BufReader::read_line()` not `windows(4)`. Handles both `\r\n` and `\n` by `trim_end_matches`.
@@ -230,7 +230,7 @@ Workflow file: `.github/workflows/build.yml`
 | Windows x86_64 | `githttp-x86_64-pc-windows-msvc.zip` |
 | Linux x86_64 musl | `githttp-x86_64-unknown-linux-musl.tar.gz` |
 
-Each archive contains: binary + `config.example.toml`
+Each archive contains: binary + quickstart script (`quickstart.bat` / `quickstart.sh`). Users run the quickstart script to generate `config.toml` interactively.
 
 ### How to release
 

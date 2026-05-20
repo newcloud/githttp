@@ -22,6 +22,22 @@ cargo build --release
 
 ### 配置
 
+**方式一：Quickstart 向导（推荐）**
+
+运行交互式引导脚本生成 `config.toml`：
+
+```bash
+# Windows
+quickstart.bat
+
+# Linux
+./quickstart.sh
+```
+
+**方式二：手动配置**
+
+复制并编辑 `config.example.toml`：
+
 ```bash
 cp config.example.toml config.toml
 ```

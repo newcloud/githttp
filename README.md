@@ -22,6 +22,22 @@ cargo build --release
 
 ### Configuration
 
+**Option 1: Quickstart wizard (recommended)**
+
+Run the interactive setup wizard to generate `config.toml`:
+
+```bash
+# Windows
+quickstart.bat
+
+# Linux
+./quickstart.sh
+```
+
+**Option 2: Manual configuration**
+
+Copy and edit `config.example.toml`:
+
 ```bash
 cp config.example.toml config.toml
 ```
