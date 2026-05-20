@@ -16,13 +16,12 @@ use std::pin::Pin;
 use std::process::Stdio;
 use std::sync::Arc;
 use std::task::{Context, Poll};
+use std::time::Instant;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command as TokioCommand;
 use tokio_util::io::ReaderStream;
 use tracing::{error, info, warn};
 
-use crate::auth;
-use crate::config::detect_git_executable;
 use crate::git_cgi::AppState;
 
 #[derive(Debug, Clone, Copy)]
@@ -177,29 +176,23 @@ pub async fn git_handler_native(
     State(state): State<Arc<AppState>>,
     req: Request,
 ) -> Result<Response, StatusCode> {
+    let request_start = Instant::now();
+    let method = req.method().to_string();
+    let uri = req.uri().to_string();
     let remote_addr = req
         .extensions()
-        .get::<std::net::SocketAddr>()
-        .map(|a| a.to_string())
+        .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
+        .map(|c| c.0.to_string())
         .unwrap_or_else(|| "unknown".to_string());
 
-    info!("native {} {} from {}", req.method(), req.uri(), remote_addr);
+    info!("native {} {} from {}", method, uri, remote_addr);
 
-    // --- Auth ---
-    let remote_user = match auth::verify_auth(&req, &state.config.users) {
-        Some(user) => {
-            info!("native Auth success for user: {}", user);
-            user
-        }
-        None => {
-            warn!(
-                "native Auth failed for request: {} {}",
-                req.method(),
-                req.uri()
-            );
-            return Ok(auth::unauthorized_response());
-        }
-    };
+    // Auth is handled by middleware, user is in extensions
+    let crate::AuthenticatedUser(remote_user) = req
+        .extensions()
+        .get::<crate::AuthenticatedUser>()
+        .cloned()
+        .ok_or(StatusCode::UNAUTHORIZED)?;
 
     // --- URL parsing ---
     let path = req.uri().path();
@@ -267,7 +260,7 @@ pub async fn git_handler_native(
         content_type_result(&svc)
     };
 
-    let git_path = detect_git_executable();
+    let git_path = state.config.resolve_git_executable().expect("git executable not found");
     let mut cmd = TokioCommand::new(&git_path);
     cmd.arg(service_name(&svc));
 
@@ -373,6 +366,8 @@ pub async fn git_handler_native(
 
     // --- child wait task (kills child on connection close) ---
     let svc_name = service_name(&svc).to_string();
+    let log_method = method.clone();
+    let log_uri = uri.clone();
     tokio::spawn(async move {
         tokio::select! {
             biased;
@@ -380,12 +375,13 @@ pub async fn git_handler_native(
                 let _ = child.start_kill();
                 match child.wait().await {
                     Ok(s) if s.success() => {
-                        // Client disconnected but child already exited normally.
-                        // This is expected for GET /info/refs (client closes after
-                        // receiving ref advertisement) and small/fast repos.
+                        let elapsed = request_start.elapsed();
+                        info!("{} {} -> 200 OK | request_time={:.3}s", log_method, log_uri, elapsed.as_secs_f64());
                         info!("native git {} completed before connection close", svc_name);
                     }
                     Ok(s) => {
+                        let elapsed = request_start.elapsed();
+                        info!("{} {} -> 200 OK | request_time={:.3}s", log_method, log_uri, elapsed.as_secs_f64());
                         warn!("native git {} killed due to connection close, exit status: {}", svc_name, s);
                     }
                     Err(e) => {
@@ -395,6 +391,8 @@ pub async fn git_handler_native(
             }
             status = child.wait() => {
                 let _ = stdin_task.await;
+                let elapsed = request_start.elapsed();
+                info!("{} {} -> 200 OK | request_time={:.3}s", log_method, log_uri, elapsed.as_secs_f64());
                 match status {
                     Ok(s) if !s.success() => {
                         warn!("native git {} exited with status: {}", svc_name, s);

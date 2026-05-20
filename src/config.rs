@@ -35,6 +35,8 @@ pub struct Config {
     pub git_project_root: PathBuf,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub git_http_backend: Option<PathBuf>,
+    #[serde(skip_serializing_if = "is_default_git_path", default)]
+    pub git_path: Option<PathBuf>,
     pub listen_addr: String,
     #[serde(skip_serializing_if = "std::collections::HashMap::is_empty", default)]
     pub users: std::collections::HashMap<String, String>,
@@ -46,6 +48,10 @@ pub struct Config {
 
 fn is_default_backend(b: &Backend) -> bool {
     *b == default_backend()
+}
+
+fn is_default_git_path(p: &Option<PathBuf>) -> bool {
+    p.is_none()
 }
 
 fn is_default_logging(l: &LoggingConfig) -> bool {
@@ -81,7 +87,52 @@ pub fn detect_git_http_backend() -> PathBuf {
     PathBuf::from(paths[0])
 }
 
+/// Find git executable in PATH environment variable.
+pub fn find_git_in_path() -> Option<PathBuf> {
+    let cmd = if cfg!(windows) { "where" } else { "which" };
+    let output = std::process::Command::new(cmd).arg("git").output().ok()?;
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let first_line = stdout.lines().next()?.trim();
+        if !first_line.is_empty() {
+            return Some(PathBuf::from(first_line));
+        }
+    }
+    None
+}
+
+/// Detect git executable: PATH first, then common install dirs, then None.
+pub fn detect_git_executable() -> Option<PathBuf> {
+    if let Some(path) = find_git_in_path() {
+        return Some(path);
+    }
+
+    if cfg!(windows) {
+        let paths = [
+            r"C:\Program Files\Git\cmd\git.exe",
+            r"C:\Program Files\Git\bin\git.exe",
+            r"C:\Program Files (x86)\Git\cmd\git.exe",
+            r"C:\Program Files (x86)\Git\bin\git.exe",
+        ];
+        for p in &paths {
+            if Path::new(p).exists() {
+                return Some(PathBuf::from(p));
+            }
+        }
+    }
+
+    None
+}
+
 impl Config {
+    /// Resolve git executable path: explicit config > auto-detect.
+    pub fn resolve_git_executable(&self) -> Option<PathBuf> {
+        if let Some(ref path) = self.git_path {
+            return Some(path.clone());
+        }
+        detect_git_executable()
+    }
+
     pub fn resolve_git_http_backend(&self) -> PathBuf {
         if let Some(ref path) = self.git_http_backend {
             return path.clone();
@@ -124,6 +175,7 @@ impl Default for Config {
                 })
                 .join("repos"),
             git_http_backend: None,
+            git_path: None,
             listen_addr: "0.0.0.0:18011".to_string(),
             users: std::collections::HashMap::new(),
             backend: default_backend(),
@@ -134,23 +186,6 @@ impl Default for Config {
 
 fn default_backend() -> Backend {
     Backend::Native
-}
-
-pub fn detect_git_executable() -> PathBuf {
-    if cfg!(windows) {
-        let paths = [
-            r"D:\Program Files\Git\cmd\git.exe",
-            r"D:\Program Files\Git\bin\git.exe",
-            r"C:\Program Files\Git\cmd\git.exe",
-            r"C:\Program Files\Git\bin\git.exe",
-        ];
-        for p in &paths {
-            if std::path::Path::new(p).exists() {
-                return PathBuf::from(p);
-            }
-        }
-    }
-    PathBuf::from("git")
 }
 
 pub fn verify_repo_path(root: &Path, repo_name: &str) -> Result<PathBuf, std::io::Error> {

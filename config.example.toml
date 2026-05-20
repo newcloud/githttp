@@ -14,6 +14,9 @@ listen_addr = "0.0.0.0:18011"
 # Path to git-http-backend executable (only needed when backend = "cgi")
 # git_http_backend = "/usr/local/libexec/git-core/git-http-backend"
 
+# Path to git executable (auto-detected from PATH if not specified)
+# git_path = "/usr/bin/git"
+
 # User authentication (username -> SHA-256 hashed password)
 # Add user:    githttp adduser <username>
 # Change pass: githttp setpassword <username>

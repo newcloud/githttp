@@ -50,6 +50,7 @@ impl Colorize for &String {
 
 use crate::auth::hash_password;
 use crate::config::Config;
+use crate::config::detect_git_executable;
 use crate::config::LoggingConfig;
 use crate::users::read_password_secure;
 
@@ -184,6 +185,40 @@ fn step1_repos_root(current: Option<PathBuf>, from_config: bool) -> PathBuf {
         }
         println!();
         return path;
+    }
+}
+
+fn step_git_path(current: Option<PathBuf>) -> Option<PathBuf> {
+    println!();
+    println!("{}", "Step 2: Git Executable".styled().bold().underline());
+    println!();
+    println!("Path to the git executable (used for native backend).");
+    println!();
+
+    let detected = detect_git_executable();
+
+    if let Some(ref path) = current {
+        println!("  {} {}", "Config:".styled().dimmed(), path.display().to_string().styled().bright_white());
+    } else if let Some(ref path) = detected {
+        println!("  {} {}", "Detected:".styled().dimmed(), path.display().to_string().styled().bright_white());
+        println!("  (Press Enter to use detected path, or type a custom path)");
+    } else {
+        println!("  {}", "Could not auto-detect git.".styled().yellow());
+        println!("  Please specify the path to git.exe manually.");
+    }
+    println!();
+    print!("Enter git path: ");
+    io::stdout().flush().unwrap();
+    let input = read_line();
+
+    if input.is_empty() {
+        if let Some(ref path) = current {
+            Some(path.clone())
+        } else {
+            detected
+        }
+    } else {
+        Some(PathBuf::from(input))
     }
 }
 
@@ -331,6 +366,9 @@ pub fn run_quickstart(config_path: &str) -> Option<Config> {
 
     let repos_root = step1_repos_root(Some(config.git_project_root.clone()), has_existing);
     config.git_project_root = repos_root;
+    config.save(config_path).expect("Failed to save config");
+
+    config.git_path = step_git_path(config.git_path.clone());
     config.save(config_path).expect("Failed to save config");
 
     let listen_addr = step_listen_addr(&config.listen_addr);

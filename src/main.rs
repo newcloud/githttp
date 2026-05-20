@@ -6,14 +6,45 @@ mod git_native;
 mod quickstart;
 mod users;
 
-use axum::{Router, routing::any};
+use axum::{Router, middleware::from_fn, routing::any};
+use axum::body::Body;
+use axum::http::Request;
+use axum::middleware::Next;
+use axum::response::Response;
 use std::{env, path::PathBuf, sync::Arc};
-use tracing::info;
+use tracing::{info, warn};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
 use config::Config;
 use git_cgi::AppState;
+
+/// Newtype for authenticated user, stored in request extensions.
+#[derive(Clone)]
+pub struct AuthenticatedUser(pub String);
+
+async fn auth_middleware(
+    state: Arc<AppState>,
+    req: Request<Body>,
+    next: Next,
+) -> Response {
+    let method = req.method().to_string();
+    let uri = req.uri().to_string();
+
+    match auth::verify_auth(&req, &state.config.users) {
+        Some(user) => {
+            info!("Auth success for user: {}", user);
+            let (mut parts, body) = req.into_parts();
+            parts.extensions.insert(AuthenticatedUser(user));
+            let req = Request::from_parts(parts, body);
+            next.run(req).await
+        }
+        None => {
+            warn!("Auth failed for request: {} {}", method, uri);
+            auth::unauthorized_response()
+        }
+    }
+}
 
 enum CliCommand {
     Server {
@@ -224,6 +255,12 @@ async fn main() {
                 );
                 std::process::exit(1);
             }
+            if config.backend == config::Backend::Native
+                && config.resolve_git_executable().is_none()
+            {
+                eprintln!("Error: git executable not found. Set git_path in config.toml.");
+                std::process::exit(1);
+            }
             let _guard = init_logging(config.logging.file_enabled, &config.logging.log_dir, quiet);
             info!("Git project root: {:?}", config.git_project_root);
 
@@ -293,6 +330,7 @@ async fn run_server(config: Config) {
 
     let project_root = config.git_project_root.clone();
     let state = Arc::new(AppState { config });
+    let auth_state = state.clone();
 
     let app = Router::new()
         .route(
@@ -302,6 +340,10 @@ async fn run_server(config: Config) {
                 config::Backend::Cgi => any(git_cgi::git_handler_cgi),
             },
         )
+        .route_layer(from_fn(move |req, next| {
+            let state = auth_state.clone();
+            auth_middleware(state, req, next)
+        }))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(&listen_addr)
@@ -322,7 +364,7 @@ async fn run_server(config: Config) {
         info!("  Then clone it: git clone http://<user>:<password>@{}:{}/demo.git", host, port);
     }
 
-    axum::serve(listener, app)
+    axum::serve(listener, app.into_make_service_with_connect_info::<std::net::SocketAddr>())
         .with_graceful_shutdown(async {
             tokio::signal::ctrl_c().await.expect("Ctrl+C handler");
         })
