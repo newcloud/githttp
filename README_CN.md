@@ -98,24 +98,27 @@ githttp -q -c config.yaml
 
 ## 使用示例
 
+例如你在 `config.toml` 中配置了 `/path/to/repos` 目录，创建了 `admin` 用户，监听地址设为 `0.0.0.0:18011`，之后运行：
+
 ```bash
-# 创建裸仓库
-cd /path/to/git/repos
-git init --bare my-project.git
-
-# 启动服务器
 githttp -c config.toml
+```
 
-# clone
-git clone http://user:pass@localhost:18011/my-project.git
+### 创建裸仓库
 
-# push
+```bash
+cd /path/to/repos
+git init --bare my-project.git
+```
+
+### Clone 和 Push
+
+```bash
+git clone http://admin:pass@localhost:18011/my-project.git
 cd my-project
 echo "# README" > README.md
 git add . && git commit -m "init"
 git push origin master
-
-git clone http://user:pass@localhost:18011/my-project.git
 ```
 
 ## 配置说明

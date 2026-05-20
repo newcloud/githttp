@@ -98,24 +98,27 @@ githttp -q -c config.yaml
 
 ## Usage Examples
 
+For example, you configured `/path/to/repos` as your repository root, created an `admin` user, and set the listen address to `0.0.0.0:18011` in `config.toml`. Then run:
+
 ```bash
-# Create a bare repository
-cd /path/to/git/repos
-git init --bare my-project.git
-
-# Start the server
 githttp -c config.toml
+```
 
-# Clone
-git clone http://user:pass@localhost:18011/my-project.git
+### Create a bare repository
 
-# Push
+```bash
+cd /path/to/repos
+git init --bare my-project.git
+```
+
+### Clone and push
+
+```bash
+git clone http://admin:pass@localhost:18011/my-project.git
 cd my-project
 echo "# README" > README.md
 git add . && git commit -m "init"
 git push origin master
-
-git clone http://user:pass@localhost:18011/my-project.git
 ```
 
 ## Config Reference
