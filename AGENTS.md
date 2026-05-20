@@ -43,6 +43,13 @@ cargo run -- deluser <username> [config.toml]       # delete user
 - **Flow (native):** HTTP request → Basic Auth verify (SHA-256) → spawn `git upload-pack` / `git receive-pack` directly with `--advertise-refs` or `--stateless-rpc` → stream stdin/stdout (no CGI header parsing) → return streaming Response
 - **Config:** `config.toml` (toml). See `Config` struct in `config.rs` for schema.
   - `git_http_backend` is `Option<PathBuf>` in config. When `None` and `backend=cgi`, auto-detect via `resolve_git_http_backend()`. When `backend=native`, it's ignored (returns empty `PathBuf`).
+  - `git_path` is `Option<PathBuf>` (default `None`). Only needed for `backend=native`.
+    - **Design principle**: config.toml stays minimal. Auto-detected values are NOT written to config.
+    - `resolve_git_executable()`: returns explicit config > auto-detect (`find_git_in_path` > common install dirs) > `None`.
+    - If auto-detection succeeds → detected path is used at runtime, config.toml unchanged.
+    - If auto-detection fails → quickstart prompts user for manual path → writes to config.toml.
+    - CGI mode does NOT need `git_path` (uses `git_http_backend` instead).
+    - Server startup validates: native mode without git → error with hint to set `git_path`.
   - `logging.file_enabled: bool` (default `false`) — whether to write logs to file.
   - `logging.log_dir: PathBuf` (default `"logs"`) — log directory.
 - **Config fallback:** `Config::from_file()` returns `Option<Self>`. Missing/invalid file → auto-detected defaults.
@@ -68,6 +75,8 @@ cargo run -- deluser <username> [config.toml]       # delete user
 - **`GuardedStream`**: wraps response body, sends kill signal on Drop (connection close). Kill log level is conditional: `INFO` if child already exited normally (expected for GET /info/refs, small repos), `WARN` only if child was forcibly killed with non-zero exit.
 - **`verify_repo_path`**: shared between native and CGI backends. Uses canonicalize to verify the resolved path stays within `git_project_root`. Returns original path (not canonicalized) for compatibility with git command on Windows.
 - **`detect_git_executable`**: auto-detects git.exe on Windows by scanning common paths (`D:\Program Files\Git\cmd`, `D:\Program Files\Git\bin`, etc.). Falls back to "git" if not found.
+ - **`detect_git_executable`**: returns `Option<PathBuf>`. Priority: PATH env (`where`/`which`) > common install dirs (`C:\Program Files\Git\...`) > `None`. No fallback to "git".
+ - **`find_git_in_path`**: runs `where git` (Windows) or `which git` (Linux), returns first match.
 
 ## Testing
 

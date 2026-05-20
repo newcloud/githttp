@@ -50,7 +50,7 @@ impl Colorize for &String {
 
 use crate::auth::hash_password;
 use crate::config::Config;
-use crate::config::detect_git_executable;
+use crate::config::{detect_git_executable, detect_git_http_backend, Backend};
 use crate::config::LoggingConfig;
 use crate::users::read_password_secure;
 
@@ -188,34 +188,49 @@ fn step1_repos_root(current: Option<PathBuf>, from_config: bool) -> PathBuf {
     }
 }
 
-fn step_git_path(current: Option<PathBuf>) -> Option<PathBuf> {
+fn step_detect_executable(current: Option<PathBuf>, backend: &Backend) -> Option<PathBuf> {
+    let (title, name, detected) = match backend {
+        Backend::Native => (
+            "Step 2: Git Executable",
+            "git executable",
+            detect_git_executable(),
+        ),
+        Backend::Cgi => (
+            "Step 2: Git HTTP Backend",
+            "git-http-backend executable",
+            Some(detect_git_http_backend()),
+        ),
+    };
+
     println!();
-    println!("{}", "Step 2: Git Executable".styled().bold().underline());
+    println!("{}", title.styled().bold().underline());
     println!();
-    println!("Path to the git executable (used for native backend).");
+    println!("Path to the {name}.");
     println!();
 
-    let detected = detect_git_executable();
+    let detected_path = detected.as_ref().filter(|p| p.exists());
 
     if let Some(ref path) = current {
         println!("  {} {}", "Config:".styled().dimmed(), path.display().to_string().styled().bright_white());
-    } else if let Some(ref path) = detected {
+        println!("  (Press Enter to keep, or type a new path)");
+    } else if let Some(path) = detected_path {
         println!("  {} {}", "Detected:".styled().dimmed(), path.display().to_string().styled().bright_white());
-        println!("  (Press Enter to use detected path, or type a custom path)");
+        println!("  (Press Enter to continue)");
     } else {
-        println!("  {}", "Could not auto-detect git.".styled().yellow());
-        println!("  Please specify the path to git.exe manually.");
+        println!("  {}", format!("Could not auto-detect {}.", name).styled().yellow());
+        println!("  Please specify the path manually.");
     }
     println!();
-    print!("Enter git path: ");
+    print!("Enter path: ");
     io::stdout().flush().unwrap();
     let input = read_line();
 
     if input.is_empty() {
-        if let Some(ref path) = current {
-            Some(path.clone())
+        if current.is_some() {
+            current
         } else {
-            detected
+            // Auto-detected: return None to avoid writing to config.toml
+            detected_path.map(|p| p.to_path_buf())
         }
     } else {
         Some(PathBuf::from(input))
@@ -224,7 +239,7 @@ fn step_git_path(current: Option<PathBuf>) -> Option<PathBuf> {
 
 fn step_listen_addr(current: &str) -> String {
     println!();
-    println!("{}", "Step 2: Listen Address".styled().bold().underline());
+    println!("{}", "Step 3: Listen Address".styled().bold().underline());
     println!();
     println!("The address and port the server will listen on.");
     println!();
@@ -285,7 +300,7 @@ fn step2_add_user(config: &mut Config) {
 }
 fn step_logging(current: &LoggingConfig) -> LoggingConfig {
     println!();
-    println!("{}", "Step 3: Logging".styled().bold().underline());
+    println!("{}", "Step 4: Logging".styled().bold().underline());
     println!();
     println!("Server can write logs to a file for auditing.");
     println!("This helps you track who accessed your repos.");
@@ -368,7 +383,14 @@ pub fn run_quickstart(config_path: &str) -> Option<Config> {
     config.git_project_root = repos_root;
     config.save(config_path).expect("Failed to save config");
 
-    config.git_path = step_git_path(config.git_path.clone());
+    match config.backend {
+        Backend::Native => {
+            config.git_path = step_detect_executable(config.git_path.clone(), &config.backend);
+        }
+        Backend::Cgi => {
+            config.git_http_backend = step_detect_executable(config.git_http_backend.clone(), &config.backend);
+        }
+    }
     config.save(config_path).expect("Failed to save config");
 
     let listen_addr = step_listen_addr(&config.listen_addr);

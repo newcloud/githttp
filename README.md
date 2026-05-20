@@ -108,6 +108,7 @@ git clone http://user:pass@localhost:18011/my-project.git
 |-------|------|---------|-------------|
 | `git_project_root` | path | `%USERPROFILE%\repos` (Win) `~/repos` (Linux) | Bare repository root directory |
 | `git_http_backend` | path? | None | git-http-backend path, only needed for CGI mode; auto-detected if omitted |
+| `git_path` | path? | None | git executable path, only needed for native mode; auto-detected from PATH if omitted |
 | `listen_addr` | string | `0.0.0.0:18011` | Listen address and port |
 | `users` | map | `{}` | Username → SHA-256 hashed password (generated via `githttp adduser`) |
 | `backend` | string | `native` | `"native"` or `"cgi"` |
