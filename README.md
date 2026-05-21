@@ -186,4 +186,4 @@ Full-pipeline streaming: request body chunks are written to the child process as
 
 ## Development
 
-This project uses [OpenCode](https://opencode.ai) for AI-assisted development, with models DeepSeek V4 and Qwen3.6 Plus.
+This project uses [OpenCode](https://opencode.ai) for AI-assisted development, with models DeepSeek V4 and Qwen3.6 Plus. [Gemini AI](https://gemini.google.com) is used for research and code review.

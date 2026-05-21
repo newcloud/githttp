@@ -186,4 +186,4 @@ Client ←→ Axum HTTP ←→ 后端处理器
 
 ## 开发
 
-本项目使用 [OpenCode](https://opencode.ai) 辅助开发，模型为 DeepSeek V4、Qwen3.6 Plus。
+本项目使用 [OpenCode](https://opencode.ai) 辅助开发，模型为 DeepSeek V4、Qwen3.6 Plus。[Gemini AI](https://gemini.google.com) 用于研究与代码审查。
